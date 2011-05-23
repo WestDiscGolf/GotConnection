@@ -1,0 +1,32 @@
+﻿@{
+    ViewBag.Title = "GotConnection v0.1 Test";
+}
+
+<h2>GotConnection v0.1 Test</h2>
+
+<h3>Live or not?</h3>
+<div>
+    <ul id="tweets">
+    </ul>
+</div>
+
+<script type="text/javascript">
+
+    $(function () {
+        $.ajax({
+            url: '@Url.Action("GetTweets", "Home")',
+            success: function (data) {
+                $.tmpl("tweet", data).appendTo('#tweets');
+            }
+        });
+
+        $("#tweet").template("tweet");
+    });
+
+</script>
+
+<script type="text/x-jquery-tmpl" id="tweet">
+    <li id="tweet${Id}">
+        ${text} - ${user.screen_name}
+    </li>
+</script>
