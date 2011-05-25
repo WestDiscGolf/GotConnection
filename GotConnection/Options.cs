@@ -62,5 +62,13 @@ namespace GotConnection
         {
             return _options.ContainsKey(key);
         }
+
+        public void SetDefault(string key, object value)
+        {
+            if (!Contains(key))
+            {
+                Add(key, value);
+            }
+        }
     }
 }

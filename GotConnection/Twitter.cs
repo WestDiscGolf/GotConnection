@@ -8,6 +8,28 @@ namespace GotConnection
 {
     public class Twitter : ITwitter
     {
+        // valid options to be passed in which can be overridden
+        private const string FormatKey = "format";
+        private const string Count = "count";
+        private const string NativeRetweets = "include_rts";
+
+        /// <summary>
+        /// Defaults to not in development
+        /// </summary>
+        public static bool InDevelopement
+        {
+            get
+            {
+                var response = ConfigurationManager.AppSettings["GotConnection.Twitter.InDevelopment"];
+                bool result;
+                if (bool.TryParse(response, out result))
+                {
+                    return result;
+                }
+                return false;
+            }
+        }
+
         /// <summary>
         /// Enum format the same as specified in the Twitter api documentation
         /// </summary>
@@ -19,95 +41,76 @@ namespace GotConnection
             atom
         }
 
-        private const string OnlineKey = "online";
-        private const string FormatKey = "format";
-
-        private readonly Options _options;
-
-        public Twitter(object options)
-        {
-            _options = new Options(options);
-            Defaults();
-        }
+        private Options _options;
 
         /// <summary>
         /// Setup the defaults, adding in if they've not been specified
         /// </summary>
-        private void Defaults()
+        /// <param name="options"></param>
+        private void Extend(object options)
         {
-            // default to online if not specified in options of web/app.config
-            if (!_options.Contains(OnlineKey))
-            {
-                var appSetting = ConfigurationManager.AppSettings["GotConnection.Twitter.Online"];
-                bool appOnline;
-                if (bool.TryParse(appSetting, out appOnline))
-                {
-                    _options.Add(OnlineKey, appOnline);
-                }
-                else
-                {
-                    _options.Add(OnlineKey, true);
-                }
-            }
+            // load the passed in options
+            _options = new Options(options);
 
-            // defaults to json format if not specified in options of web/app.config
-            if (!_options.Contains(FormatKey))
-            {
-                var appSetting = ConfigurationManager.AppSettings["GotConnection.Twitter.Format"];
-                Format format;
-                if (Enum.TryParse(appSetting, out format))
-                {
-                    _options.Add(FormatKey, format);
-                }
-                else
-                {
-                    _options.Add(FormatKey, Format.json);
-                }
-            }
-        }
+            // default json format
+            _options.SetDefault(FormatKey, Format.json);
+            
+            // default return 5
+            _options.SetDefault(Count, 5);
 
-        public bool IsOnline
-        {
-            get { return (bool)_options[OnlineKey]; }
+            // include native retweets
+            _options.SetDefault(NativeRetweets, true);
         }
 
         /// <summary>
         /// Gets the timeline for the specified username and most recent tweets as defined.
         /// </summary>
         /// <param name="username">Twitter username the timeline is required for</param>
-        /// <param name="count">Number of tweets to return</param>
+        /// <param name="options"></param>
         /// <returns></returns>
-        public string TimeLine(string username, int count)
+        public string TimeLine(string username, object options = null)
         {
-            return IsOnline ? TimeLineLive(username, count) : TimeLineUnPlugged(username, count);
-        }
+            Extend(options);
 
-        /// <summary>
-        /// Live implementation to access the Twitter api and return the specified formatted response
-        /// </summary>
-        /// <param name="username"></param>
-        /// <param name="count"></param>
-        /// <returns></returns>
-        private string TimeLineLive(string username, int count)
-        {
-            var result = string.Empty;
-            var baseTwitterApiUrl = string.Format("http://api.twitter.com/1/statuses/user_timeline.{0}", _options[FormatKey]);
-            var url = string.Format("{0}?screen_name={1}&include_rts=true&count={2}",
-                baseTwitterApiUrl, username, count);
-            var webRequest = WebRequest.Create(url);
-            webRequest.Timeout = 2000;
-            using (var response = webRequest.GetResponse() as HttpWebResponse)
+            string timelineUrl = string.Format("http://api.twitter.com/1/statuses/user_timeline.{0}?screen_name={1}", _options[FormatKey], username);
+
+            if (_options.Contains(Count))
             {
-                if (response.StatusCode == HttpStatusCode.OK)
+                timelineUrl = string.Format("{0}&count={1}", timelineUrl, _options[Count]);
+            }
+
+            if (_options.Contains(NativeRetweets))
+            {
+                timelineUrl = string.Format("{0}&include_rts={1}", timelineUrl, _options[NativeRetweets]);
+            }
+
+            var result = string.Empty;
+            var webRequest = WebRequest.Create(timelineUrl);
+            webRequest.Timeout = 2000;
+
+            try
+            {
+                using (var response = webRequest.GetResponse() as HttpWebResponse)
                 {
-                    var receiveStream = response.GetResponseStream();
-                    if (receiveStream != null)
+                    if (response.StatusCode == HttpStatusCode.OK)
                     {
-                        var stream = new StreamReader(receiveStream);
-                        result = stream.ReadToEnd();
+                        var receiveStream = response.GetResponseStream();
+                        if (receiveStream != null)
+                        {
+                            var stream = new StreamReader(receiveStream);
+                            result = stream.ReadToEnd();
+                        }
                     }
                 }
             }
+            catch (WebException)
+            {
+                if (InDevelopement)
+                {
+                    result = InDevelopmentTimeline(username);
+                }
+            }
+            
             return result;
         }
 
@@ -117,7 +120,7 @@ namespace GotConnection
         /// <param name="username"></param>
         /// <param name="count"></param>
         /// <returns></returns>
-        private string TimeLineUnPlugged(string username, int count)
+        private string InDevelopmentTimeline(string username)
         {
             var result = string.Empty;
 
@@ -125,7 +128,7 @@ namespace GotConnection
             {
                 case Format.json:
                     List<string> status = new List<string>();
-                    for (int index = 0; index < count; index++)
+                    for (int index = 0; index < (int)_options[Count]; index++)
                     {
                         status.Add(Status);
                     }

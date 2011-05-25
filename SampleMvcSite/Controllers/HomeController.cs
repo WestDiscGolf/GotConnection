@@ -11,8 +11,10 @@ namespace SampleMvcSite.Controllers
 
         public ContentResult GetTweets()
         {
-            GotConnection.ITwitter twitter = GotConnection.ConnectTo.Twitter(null);
-            var result = twitter.TimeLine("WestDiscGolf", 5);
+            GotConnection.ITwitter twitter = GotConnection.ConnectTo.Twitter();
+            var result = twitter.TimeLine("WestDiscGolf", new { count = 5 });
+
+            twitter.TimeLine("WestDiscGolf");
 
             return new ContentResult { Content = result, ContentType = "application/json" };            
         }

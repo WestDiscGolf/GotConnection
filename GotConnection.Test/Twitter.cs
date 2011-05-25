@@ -10,50 +10,35 @@ namespace GotConnection.Test
     public class Twitter
     {
         [TestMethod]
-        public void DefaultOnline()
+        public void InDevelopment()
         {
-            var twitter = new GotConnection.Twitter(null);
-            Assert.IsTrue(twitter.IsOnline);
-        }
-
-        [TestMethod]
-        public void SpecifyOnline()
-        {
-            var twitter = new GotConnection.Twitter(new {online = true});
-            Assert.IsTrue(twitter.IsOnline);
-        }
-
-        [TestMethod]
-        public void SpecifyOffline()
-        {
-            var twitter = new GotConnection.Twitter(new {online = false});
-            Assert.IsFalse(twitter.IsOnline);
+            Assert.IsFalse(GotConnection.Twitter.InDevelopement);
         }
 
         [TestMethod]
         public void WorksOnline()
         {
-            ITwitter twitter = ConnectTo.Twitter(null);
+            ITwitter twitter = ConnectTo.Twitter();
             var result = twitter.TimeLine("WestDiscGolf", 1);
+            Assert.IsNotNull(result);
+        }
+
+        [TestMethod]
+        public void WorksOnlineOptionsOverload()
+        {
+            ITwitter twitter = ConnectTo.Twitter();
+            var result = twitter.TimeLine("WestDiscGolf", new { count = 1 });
             Assert.IsNotNull(result);
         }
 
         [TestMethod]
         public void WorksOnlineXml()
         {
-            ITwitter twitter = ConnectTo.Twitter(new {format = GotConnection.Twitter.Format.xml});
-            var result = twitter.TimeLine("WestDiscGolf", 1);
+            ITwitter twitter = ConnectTo.Twitter();
+            var result = twitter.TimeLine("WestDiscGolf", new { format = GotConnection.Twitter.Format.xml, count = 1 });
             var doc = new XmlDocument();
             doc.LoadXml(result);
             Assert.AreEqual(1, doc.SelectNodes("//status").Count);
-        }
-
-        [TestMethod]
-        public void TestOfflineJson()
-        {
-            ITwitter twitter = ConnectTo.Twitter(new {online = false});
-            var result = twitter.TimeLine("WestDiscGolf", 2);
-            Assert.IsNotNull(result);
         }
     }
 }

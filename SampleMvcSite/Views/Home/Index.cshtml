@@ -1,8 +1,8 @@
 ﻿@{
-    ViewBag.Title = "GotConnection v0.1 Test";
+    ViewBag.Title = "GotConnection v0.2 Test";
 }
 
-<h2>GotConnection v0.1 Test</h2>
+<h2>GotConnection v0.2 Test</h2>
 
 <h3>Live or not?</h3>
 <div>
@@ -16,7 +16,9 @@
         $.ajax({
             url: '@Url.Action("GetTweets", "Home")',
             success: function (data) {
-                $.tmpl("tweet", data).appendTo('#tweets');
+                if (data != "") {
+                    $.tmpl("tweet", data).appendTo('#tweets');
+                }
             }
         });
 

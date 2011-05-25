@@ -8,11 +8,10 @@
         /// <summary>
         /// Create an instance of ITwitter with specific options.
         /// </summary>
-        /// <param name="options"></param>
         /// <returns>An instance of ITwitter</returns>
-        public static ITwitter Twitter(object options)
+        public static ITwitter Twitter()
         {
-            return new Twitter(options);
+            return new Twitter();
         }
 
         //public static IBlogger Blogger(object options)
